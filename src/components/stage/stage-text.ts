@@ -27,6 +27,7 @@ export const RESOURCE_NAMES: Record<ResourcePage, [string, string]> = {
   plot: ['剧情与伏笔', 'Plot & threads'],
   knowledge: ['知识库', 'Knowledge base'],
   history: ['版本历史', 'Version history'],
+  canvas: ['自由画布', 'Canvas'],
 }
 
 /** 阶段、资料页与角色名单的标签用固定的名字（阶段与资料页取流程脊上的名字），同一个页面只有一个名字。 */
@@ -38,6 +39,7 @@ const PAGE_TAB_NAMES: Partial<Record<EditorTab['type'], [string, string]>> = {
   'narrative-thread': RESOURCE_NAMES.plot,
   knowledge: RESOURCE_NAMES.knowledge,
   'version-history': RESOURCE_NAMES.history,
+  canvas: RESOURCE_NAMES.canvas,
 }
 
 /** 标签显示的名字。正文、审稿报告与恢复草稿等标签沿用各自的名字。 */

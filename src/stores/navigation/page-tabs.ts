@@ -1,4 +1,4 @@
-import { useEditorStore } from '../editor-store'
+import { createProjectScopedEditorTabId, useEditorStore } from '../editor-store'
 import { useLocaleStore } from '../locale-store'
 import { openBuiltinEditor } from '../open-builtin-editor'
 import { useProjectStore } from '../project-store'
@@ -12,6 +12,12 @@ const PAGE_TABS: Partial<Record<WorkStage | ResourcePage, (text: Text) => void>>
   blueprint: text => openBuiltinEditor('chapter-card-editor', text('章节蓝图', 'Chapter blueprint'), 'chapter-card'),
   plot: text => openBuiltinEditor('narrative-thread-editor', text('剧情树与叙事线索', 'Plot tree & narrative threads'), 'narrative-thread', 'plot-tree'),
   history: text => openBuiltinEditor('version-history', text('版本历史', 'Version history'), 'version-history'),
+  canvas: text => {
+    const projectKey = useProjectStore.getState().currentProject?.path
+    if (!projectKey) return
+    useEditorStore.getState().openFile({ id: createProjectScopedEditorTabId('canvas', 'canvas', projectKey),
+      name: text('自由画布', 'Canvas'), type: 'canvas', projectKey })
+  },
   setup: text => {
     const projectKey = useProjectStore.getState().currentProject?.path
     if (projectKey) useEditorStore.getState().openFile({ id: 'config', name: text('小说配置', 'Novel configuration'), type: 'config', projectKey })

@@ -111,15 +111,6 @@ export function useDocTree(projectKey: string) {
     mutate((session, revision) => docTreeService.moveNode(session, id, parentId, order, revision, projectKey))
   ), [mutate, projectKey])
 
-  const trashNode = useCallback((id: string) => (
-    mutate((session, revision) => docTreeService.trashNode(session, id, revision, projectKey))
-  ), [mutate, projectKey])
-
-  const restoreNode = useCallback(async (id: string): Promise<boolean> => {
-    const node = await mutate((session, revision) => docTreeService.restoreNode(session, id, revision, projectKey))
-    return Boolean(node)
-  }, [mutate, projectKey])
-
   const refreshTrash = useCallback(async () => {
     const session = activeSession()
     if (!session) return
@@ -134,6 +125,20 @@ export function useDocTree(projectKey: string) {
       }
     }
   }, [activeSession, projectKey, text])
+
+  const trashNode = useCallback(async (id: string) => {
+    const node = await mutate((session, revision) => docTreeService.trashNode(session, id, revision, projectKey))
+    // 回收站开着时删掉的项立刻出现在列表里，不必关掉再开。
+    if (node && useCanvasStore.getState().trashViewOpen) await refreshTrash()
+    return node
+  }, [mutate, projectKey, refreshTrash])
+
+  const restoreNode = useCallback(async (id: string): Promise<boolean> => {
+    const node = await mutate((session, revision) => docTreeService.restoreNode(session, id, revision, projectKey))
+    // 恢复后回收站里这一项必须消失：mutate 只换了树快照，回收站列表是另一次读。
+    if (node && useCanvasStore.getState().trashViewOpen) await refreshTrash()
+    return Boolean(node)
+  }, [mutate, projectKey, refreshTrash])
 
   const purgeNodes = useCallback(async (request: PurgeDocTreeRequest): Promise<boolean> => {
     const session = activeSession()

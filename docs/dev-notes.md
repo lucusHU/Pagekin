@@ -206,3 +206,29 @@ src/shared/doc-tree.ts:142 [thrown-error] '资料树节点不能自连'
 - **旧星图未动**：`src/components/editor/RelationshipGraph.tsx` 及其 layout 无改动。
 - **依赖未新增**：`react-complex-tree`、`nanoid` 均未安装；理由见合同第 6 节第 7 条。`pnpm-lock.yaml` 不变。
 - **幂等迁移**：M09 先查 `PRAGMA table_info(project_core)`，列已在则跳过，避免旧库经 M00 补列后再 `ALTER` 报重复列。
+
+## 6. S2 真机实测（无头 Linux + Playwright-Electron，2026-11-13）
+
+跑法：`LANG=zh_CN.UTF-8 LC_ALL=zh_CN.UTF-8 LANGUAGE=zh_CN:zh xvfb-run -a node scripts/redesign/drive.mjs --scenario canvas-doc-tree --theme light --shell stage --out <目录>`。截图 1440×900，由仓库自带的驱动（`_electron` + 真实主进程 + 真实 sqlite）自动截，不是组件预览。
+
+新增场景 `scripts/redesign/canvas-scenarios.mjs`（已在 `drive.mjs` 注册）：
+
+| 场景 | 做了什么 | 结果 |
+|---|---|---|
+| `canvas-doc-tree` | 真实 IPC 建 8 个节点（两层文件夹 + 文档 + 画布），展开三层，断言可见行顺序 | 通过 |
+| `canvas-doc-tree-dark`（`--theme dark`） | 同上，深色主题 | 通过 |
+| `canvas-doc-tree-trash` | 删掉「人物」文件夹（带 1 个子节点），打开回收站，断言只有 1 项且「含 2 个节点」 | 通过 |
+| `canvas-doc-tree-edit` | 双击「林岚」改写为「林岚 · 测绘师」→ 行菜单软删「人物」→ 关标签重开（从库重读）→ 回收站恢复 → 回树校验 | 通过 |
+
+实测中修掉的问题：
+
+- **回收站列表不刷新**：`restoreNode` / `trashNode` 只换了树快照，回收站视图仍显示旧列表（`restoreNode` 后点「恢复」列表项不消失）。已在 `use-doc-tree.ts` 里按 `trashViewOpen` 追加 `refreshTrash()`。
+- 修这个时先引入了一次 TDZ（`useCallback` 依赖数组引用了声明在下面的 `refreshTrash`，页面挂载即 `Cannot access 'refreshTrash' before initialization`）。已把 `refreshTrash` 的声明挪到使用它的回调之前；这条只有在真机跑才暴露，单测与 typecheck 都发现不了。
+- **入口原本是缺的**：S1 只注册了 `canvas` 标签类型与 `StageCanvas`，没有任何界面入口能打开它，等于侧栏树在真机上不可达。已补「自由画布」到流程脊的作品资料组（`ResourcePage` 加 `canvas`、`RESOURCE_NAMES`、`RESOURCE_ICONS`、`PAGE_TABS`、`TAB_LOCATION`）。
+
+宿主限制（不是这次改动引入）：
+
+- Linux 上安全文件系统只有 Windows/macOS 实现，`fs:list-dir` 抛 `SECURE_FS_UNSUPPORTED_PLATFORM`，打开作品后弹「项目已打开，部分数据加载失败」。截图场景里把这个通道打桩成空目录绕开；真机 Windows 上不会出现。
+- 界面语言取 `navigator.language`：只设 `LANG` 不够，还要 `LANGUAGE=zh_CN:zh`，否则全英文，场景的中文选择器全部落空。
+
+仍未实测：原生 HTML5 拖拽（Playwright 合成不出 `dragstart`，落点计算已有 5 条单测）、画布右半部分的 S1 静态示例节点超出视口（S3 接真实快照时替换）、深色下侧栏与画布的分界偏弱（可考虑加一条 1px 分隔）。
