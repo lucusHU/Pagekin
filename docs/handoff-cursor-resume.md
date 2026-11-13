@@ -5,7 +5,7 @@
 
 ## 1. 一句话现状
 
-fork 自留仓库 `lucusHU/Pagekin`，分支 `feat/canvas-mindmap`；**S1（React Flow 引擎接入 + 最小画布）** 与 **阶段 0（S2 资料树合同 + 复用调研 + 开发台账）** 已完成并推远端。下一步是 **S2 资料树实现**。
+fork 自留仓库 `lucusHU/Pagekin`，分支 `feat/canvas-mindmap`；**S1（React Flow 引擎接入 + 最小画布）**、**阶段 0（资料树合同 + 复用调研 + 开发台账）** 与 **S2（资料树仓储 + 侧栏树）** 已完成并推远端。下一步是 **S3 画布快照与节点/边 CRUD**。
 
 ## 2. 环境与仓库
 
@@ -14,7 +14,7 @@ fork 自留仓库 `lucusHU/Pagekin`，分支 `feat/canvas-mindmap`；**S1（Reac
 | VM 仓库路径 | `/home/user/Doubao/chats/38453600587724546/projects/Pagekin` |
 | 上游 | `EthanYoQ/Pagekin`（GPL-3.0，默认分支 `master`）；**不向上游提 PR** |
 | 分支 | `feat/canvas-mindmap` |
-| HEAD（本地=远端） | `6bcb9733c4052b51dc0cc07014fdcce7566d98fa` |
+| HEAD（本地=远端） | `3631898ba6c08e49007e94933709d2b03e063c97`（S2） |
 | git 身份 | `lucusHU` / `2414154422@qq.com` |
 | 推送通道 | 已打通：`credential.helper=store`，凭据在本机 `~/.git-credentials`（600 权限，不在仓库内）；直接 `git push origin feat/canvas-mindmap`。token 不回显、不进提交记录；旧无效 token 已撤销 |
 | Node / pnpm | Node v22.23.2；pnpm 自举 11.11.0 做**非 frozen** 依赖解析会停滞，须用全局 11.7.0；`--frozen-lockfile` 正常 |
@@ -53,6 +53,15 @@ fork 自留仓库 `lucusHU/Pagekin`，分支 `feat/canvas-mindmap`；**S1（Reac
 - `docs/research/canvas-reuse-inventory.md`：react-complex-tree 2.6.4（MIT, Lukas Bach）、xyflow/dagre/nanoid License 与 API 落点；本仓可复用模块定位表；rct × React 19 / Tailwind 4 兼容待 S2 实测。
 - `docs/dev-notes.md`：真实检查记录、环境约束、S2–S6 出口预留位。
 
+### S2 · 资料树
+
+- `electron/migrations/m09-doc-tree-snapshot.ts`：M09（schema 9 → 10），`project_core.doc_tree_snapshot TEXT NOT NULL DEFAULT ''`，幂等（先查 `PRAGMA table_info`）；`registry.ts` / `desktop-registry.ts` / `project-storage.ts` 同步登记，版本常量升 10。
+- `electron/repositories/doc-tree-repository.ts`：`read` / `createNode` / `renameNode` / `moveNode` / `trashNode` / `restoreNode` / `purgeNodes` / `clear` / `listTrash`。`sourceRevision` 只哈希句柄集合；子树按同一 `deletedAt` 进出回收站；同级序号整体重排。
+- `src/shared/doc-tree.ts`：补 `DocTreeReadBundle` / `DocTreeNodeCreateInput` / `TrashedDocTreeNode` / `DocTreeTrashListResult` / `PurgeDocTreeRequest` / `DocTreeNodeMutationResult`。
+- `src/shared/ipc-channels.ts` + `electron/controllers/db-controller.ts`：`db:doc-tree-read`、`db:doc-tree-node-{create,rename,move}`、`doc-tree:trash-{list,node,restore,purge}`、`doc-tree:clear`；`ipc-client` 项目会话范围加 `doc-tree:`。
+- `src/stores/canvas-store.ts`（资料树会话态，S3 继续在这里加节点/边）、`src/services/canvas/doc-tree-service.ts`、`src/components/stage/canvas/{DocTreeSidebar.tsx,use-doc-tree.ts,doc-tree-view.ts,doc-tree-errors.ts}`；`StageCanvas.tsx` 改为左树右画布。
+- 单测：`src/shared/__tests__/doc-tree.test.ts`（10）、`electron/repositories/__tests__/doc-tree-repository.test.ts`（11）、`src/components/stage/canvas/__tests__/doc-tree-view.test.ts`（5）。
+
 ### 既有参照模式（先 Read 再仿，不另造框架）
 
 - 快照：`electron/repositories/plot-tree-repository.ts` + `src/shared/plot-tree.ts`（`project_core` JSON 列、断言器、sha256 `sourceRevision`）。
@@ -67,13 +76,13 @@ fork 自留仓库 `lucusHU/Pagekin`，分支 `feat/canvas-mindmap`；**S1（Reac
 |---|---|---|
 | S1 引擎接入 | ✅ 完成并推远端 | 见上 |
 | 阶段 0 合同/调研/台账 | ✅ 完成并推远端 | 见上 |
-| **S2 资料树** | 🔜 下一步 | `DocTreeNode` 落地；`doc_tree` 快照存储 + 侧栏树 UI：CRUD、拖拽排序、层级缩进、软删除/恢复。装 `react-complex-tree 2.6.4`、`nanoid 6.0.2`（均 MIT）。出口：树增删改、软删可恢复；相关单测过 |
-| S3 画布快照与节点/边 CRUD | ⬜ | 合同 + `canvas-repository` + 快照读写 IPC；React Flow 渲染快照；节点边增删改；自由拖拽/缩放/小地图 |
+| S2 资料树 | ✅ 完成并推远端 | 见第 4 节；未装 rct/nanoid，自写受控树（决定见合同第 6 节） |
+| **S3 画布快照与节点/边 CRUD** | 🔜 下一步 | 合同 + `canvas-repository` + 快照读写 IPC；React Flow 渲染快照；节点边增删改；自由拖拽/缩放/小地图。快照列可对齐 M09 之后再加列（M10，主集成者串行） |
 | S4 编辑操作 | ⬜ | 多选/复制/复制样式/锁定；轻量 undo-redo 栈；dagre 一键整理（只回写坐标不动结构）；节点数/字数状态栏 |
 | S5 AI 浮层与节点提案 | ⬜ | 面板挂画布入口；@ 菜单聚合节点+父链+兄弟+关联角色/章节；展开/扩写/改写走候选卡片；确认落快照；取消/身份校验/切项目拒绝对齐现有 generation 链路 |
 | S6 文本应用与收尾 | ⬜ | 文本提案接 diff-match-patch 逐条确认；原稿进版本历史；剔除项核查；中英双语；补单测与节点示例 |
 
-### S2 待决项（阶段 0 遗留，实现前先定）
+### S2 待决项（已全部定稿，结论见 `docs/plans/canvas-doc-tree-contract.md` 第 6 节；此处保留原问题供追溯）
 
 1. `sourceRevision` 对权威实体字段的哈希口径（角色 roster `factHash` 是否纳入）。
 2. 软删除子树连带策略；是否需要 `deletionId` 分组句柄。
