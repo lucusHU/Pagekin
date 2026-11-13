@@ -119,20 +119,18 @@ src/shared/doc-tree.ts:142 [thrown-error] '资料树节点不能自连'
 
 ## 3. 推送通道现状
 
-### 3.1 现状
+### 3.1 现状（2026-11-13 晚已打通）
 
-- **无 git 写凭据**：未配置 `credential.helper`，无 `~/.git-credentials`；本轮未尝试 push（亦属本轮硬边界：不 commit、不 push）。
-- **连接器写文件限制**：分批写文件只接受完整文件内容，不接受增量补丁式写入。
-- **lockfile 未同步远端**：本地 `pnpm-lock.yaml` 已随 S1 提交 `9293926` 更新（较基线 +212 行），远端分支尚未收到；待 PAT 到位后随源码统一补推。
-- 本地无远端跟踪 ref（未执行 fetch）；远端 HEAD 取自 `git ls-remote origin feat/canvas-mindmap`：`b5cfc228…`；本地 HEAD：`9293926…`。
+- **git 写凭据已配置**：`credential.helper=store`，凭据存本机 `~/.git-credentials`（600 权限），不在仓库内、不进提交记录；PAT 为 `repo` scope，身份 `lucusHU`。
+- **本地与远端一致**：分支 `feat/canvas-mindmap` HEAD `6bcb9733c4052b51dc0cc07014fdcce7566d98fa`；`pnpm-lock.yaml` 已随 S1 commit 推上远端，含 xyflow/dagre 条目，`--frozen-lockfile` 可过。
+- 后续切片直接 `git push origin feat/canvas-mindmap`；仅在需要覆盖分叉历史时用 `--force-with-lease`。
+- 安全纪律：不回显 token；旧无效 token 已在 GitHub 侧撤销；不把凭据写入仓库文件。
 
-### 3.2 待 PAT 后补推步骤备忘
+### 3.2 推送备忘
 
-1. PAT 就位后配置 git 写凭据；
-2. 推送前核对工作区，区分并行切片 WIP 与待提交内容，避免混入未归属文件；
-3. 确认 `pnpm-lock.yaml` 与 `package.json` 一致（frozen 解析可过）；
-4. `git push origin feat/canvas-mindmap`，源码与 lockfile 一并补推；
-5. 补推后核对远端 HEAD 与本地 HEAD 一致。
+1. 推送前 `git status` 区分归属，不混入无关 WIP；
+2. 确认 `pnpm-lock.yaml` 与 `package.json` 一致；
+3. 推送后核对远端 HEAD 与本地一致（`git ls-remote` / `git rev-parse`）。
 
 ---
 
