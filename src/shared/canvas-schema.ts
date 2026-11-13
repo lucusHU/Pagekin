@@ -29,10 +29,8 @@ export interface CanvasSnapshot {
   edges: CanvasEdge[]
 }
 
-/** 资料树节点形状；完整 DocTreeNode 合同（层级、软删除、快照）在 S2 落地。 */
-export interface DocTreeNode {
-  id: string
-  parentId: string | null
-  kind: 'folder' | 'document' | 'canvas'
-  title: string
-}
+/**
+ * 资料树节点完整合同（层级、来源、引用句柄、软删除、快照与断言器）在
+ * `./doc-tree`；此处仅 type-only 再导出，兼容既有引用路径，不再重复定义。
+ */
+export type { DocTreeNode } from './doc-tree'
