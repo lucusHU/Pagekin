@@ -14,6 +14,7 @@ import { EmptyState } from '../ui/EmptyState'
 import { DangerConfirm } from '../ui/DangerConfirm'
 import RunSheet from './run/RunSheet'
 import StageArchitecture from './architecture/StageArchitecture'
+import StageCanvas from './canvas/StageCanvas'
 import StageCharacters from './characters/StageCharacters'
 import StageLibrary from './library/StageLibrary'
 import { SettingsPage, SetupPage } from './stage-pages'
@@ -51,6 +52,7 @@ function TabContent({ tab, project }: { tab: EditorTab; project: ProjectData }) 
   if (tab.type === 'narrative-thread' && sameProject) {
     return <StagePlot projectKey={project.path} initialView={tab.narrativeThreadView ?? 'plans'} viewRequest={tab.narrativeThreadViewRequest} />
   }
+  if (tab.type === 'canvas' && tab.projectKey) return <StageCanvas />
   if (tab.type === 'arch-file' && tab.filePath && tab.projectKey) {
     return <ArchFileViewer key={tab.id} tabId={tab.id} filePath={tab.filePath} projectKey={tab.projectKey} content={tab.content ?? ''} savedContent={tab.savedContent ?? tab.content ?? ''} />
   }

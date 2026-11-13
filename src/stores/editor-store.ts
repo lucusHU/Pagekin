@@ -53,7 +53,7 @@ export interface EditorTab {
   id: string
   name: string
   /** 知识库页的标签。 */
-  type: 'chapter' | 'outline' | 'character' | 'config' | 'diff' | 'chapter-card' | 'world-building' | 'arch-file' | 'version-history' | 'review-report' | 'narrative-thread' | 'knowledge'
+  type: 'chapter' | 'outline' | 'character' | 'config' | 'diff' | 'chapter-card' | 'world-building' | 'arch-file' | 'version-history' | 'review-report' | 'narrative-thread' | 'knowledge' | 'canvas'
   filePath?: string
   content?: string
   /** 架构文档已持久化的基准内容，用于跨 Tab/项目切换后恢复脏状态。 */
@@ -204,6 +204,7 @@ const PROJECT_SCOPED_BUILTIN_TYPES = new Set<EditorTab['type']>([
   'diff',
   'narrative-thread',
   'knowledge',
+  'canvas',
 ])
 
 export interface EditorExitSaveHandler {

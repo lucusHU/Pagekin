@@ -1,0 +1,17 @@
+/* ================= 自由画布思维导图 ================= */
+
+.stage-canvas {
+  flex: 1;
+  min-height: 0;
+  background: var(--color-bg);
+}
+
+.stage-canvas-node {
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-panel);
+  color: var(--ink);
+  font: 400 var(--fs-13)/1.4 var(--font-ui);
+  white-space: nowrap;
+}
