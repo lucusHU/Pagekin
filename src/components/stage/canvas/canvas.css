@@ -15,3 +15,162 @@
   font: 400 var(--fs-13)/1.4 var(--font-ui);
   white-space: nowrap;
 }
+
+/* ================= 资料树侧栏（S2） ================= */
+
+.stage-canvas-shell {
+  display: grid;
+  grid-template-columns: 272px minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+
+.stage-doc-tree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-height: 0;
+  padding: var(--s-5) var(--s-3) var(--s-4);
+  border-right: 1px solid var(--rule);
+  background: var(--color-panel);
+}
+
+.stage-doc-tree-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding: 0 var(--s-2);
+}
+
+.stage-doc-tree-title {
+  margin: 0;
+  font: 600 var(--fs-16)/1.3 var(--font-display);
+  color: var(--ink);
+}
+
+.stage-doc-tree-note,
+.stage-doc-tree-meta {
+  margin: 0;
+  font-size: var(--fs-12);
+  color: var(--color-text-muted);
+}
+
+.stage-doc-tree-error {
+  margin: 0 var(--s-2);
+  font-size: var(--fs-12);
+  color: var(--color-error-text);
+}
+
+.stage-doc-tree-warn {
+  margin: 0 var(--s-2);
+  font-size: var(--fs-12);
+  color: var(--color-warning-text);
+}
+
+.stage-doc-tree-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.stage-doc-tree-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stage-doc-tree-row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-1);
+  padding: 2px var(--s-2) 2px var(--s-2);
+  border-radius: var(--radius-panel);
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+}
+
+.stage-doc-tree-row[data-selected] {
+  background: var(--color-hover);
+}
+
+.stage-doc-tree-row[data-dragging] {
+  opacity: 0.55;
+}
+
+.stage-doc-tree-row[data-drop="before"] {
+  border-top-color: var(--color-accent);
+}
+
+.stage-doc-tree-row[data-drop="after"] {
+  border-bottom-color: var(--color-accent);
+}
+
+.stage-doc-tree-row[data-drop="inside"] {
+  outline: 1px solid var(--color-accent);
+  background: var(--color-hover);
+}
+
+.stage-doc-tree-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.stage-doc-tree-toggle:disabled {
+  cursor: default;
+}
+
+.stage-doc-tree-icon {
+  color: var(--color-text-muted);
+}
+
+.stage-doc-tree-name {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 400 var(--fs-13)/1.5 var(--font-ui);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.stage-doc-tree-name[data-kind="folder"] {
+  font-weight: 600;
+}
+
+.stage-doc-tree-rename {
+  min-width: 0;
+  padding: 1px var(--s-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-bg);
+  color: var(--ink);
+  font: 400 var(--fs-13)/1.5 var(--font-ui);
+}
+
+.stage-doc-tree-trash-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.stage-doc-tree-trash-foot {
+  padding: var(--s-2);
+  border-top: 1px solid var(--rule);
+}

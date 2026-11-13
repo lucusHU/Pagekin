@@ -10,6 +10,8 @@ import {
   type NodeTypes,
 } from '@xyflow/react'
 import type { CanvasEdge, CanvasNode } from '../../../shared/canvas-schema'
+import { useProjectStore } from '../../../stores/project-store'
+import DocTreeSidebar from './DocTreeSidebar'
 import './canvas.css'
 
 /**
@@ -31,10 +33,12 @@ const nodeTypes: NodeTypes = {
 }
 
 /**
- * S1 最小画布：渲染一组静态示例节点与父子连线，可缩放、拖动视口。
- * 尚未接持久化与节点编辑；快照读写与 CRUD 在 S3/S4 落地。
+ * 画布页：左侧资料树 + 主画布。S2 只把资料树接上持久化；画布仍是 S1 的静态示例，
+ * 快照读写与节点/边 CRUD 在 S3 落地。
  */
 export default function StageCanvas() {
+  const projectKey = useProjectStore(s => s.currentProject?.path ?? '')
+
   const nodes = useMemo<CanvasNode[]>(() => [
     {
       id: 'canvas-root',
@@ -62,11 +66,16 @@ export default function StageCanvas() {
   ], [])
 
   return (
-    <div className="stage-canvas">
-      <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView>
-        <Background variant={BackgroundVariant.Dots} gap={24} size={1.5} />
-        <Controls />
-      </ReactFlow>
+    <div className="stage-canvas-shell">
+      {projectKey
+        ? <DocTreeSidebar projectKey={projectKey} />
+        : <aside className="stage-doc-tree" aria-hidden />}
+      <div className="stage-canvas">
+        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView>
+          <Background variant={BackgroundVariant.Dots} gap={24} size={1.5} />
+          <Controls />
+        </ReactFlow>
+      </div>
     </div>
   )
 }

@@ -52,6 +52,7 @@ function isProjectScopedChannel(channel: string): boolean {
     || channel.startsWith('import-generation:')
     || channel.startsWith('editor-inline:')
     || channel.startsWith('db:')
+    || channel.startsWith('doc-tree:')
     || channel.startsWith('kb:')
     || channel.startsWith('chapter:')
     || channel.startsWith('fs:')

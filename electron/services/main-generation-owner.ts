@@ -776,7 +776,7 @@ export function createMainGenerationOwner(deps: MainGenerationOwnerDependencies)
   const plotOutlineTargetCurrent = (run: DurableGenerationRun, outline: PlotOutlineProgress, target: string): boolean => {
     const raw = deps.database.prepare("SELECT * FROM project_core WHERE id='main'").get() as Record<string, unknown> | undefined
     if (!raw || raw.synopsis !== target) return false
-    const core = Object.fromEntries(Object.entries(raw).filter(([key]) => !['created_at', 'updated_at', 'character_states', 'plot_tree_snapshot'].includes(key)))
+    const core = Object.fromEntries(Object.entries(raw).filter(([key]) => !['created_at', 'updated_at', 'character_states', 'plot_tree_snapshot', 'doc_tree_snapshot'].includes(key)))
     const origin = run.binding.sourceManifest.plotOutlineSource as PlotOutlineSource
     if (!isDeepStrictEqual({ ...core, synopsis: outline.sourceExpected.synopsis }, origin.core)) throw new Error('GENERATION_SOURCE_CHANGED')
     const current = deps.rebuildBinding(run.binding, currentModelReceipt(run.binding))

@@ -77,15 +77,15 @@ const EXPECTED_BASELINE = [
 afterEach(() => { vi.restoreAllMocks() })
 
 describe('installed M08 lane', () => {
-  it('upgrades v8 to the recognized v9 schema with one legacy node per current state field and relationship', () => {
+  it('upgrades v8 through the recognized M08 lane with one legacy node per current state field and relationship', () => {
     const db = v8Project()
     try {
       const before = {
         characters: db.prepare('SELECT * FROM characters ORDER BY character_id').all(),
         relationships: db.prepare('SELECT * FROM character_relationships ORDER BY relationship_id').all(),
       }
-      const result = migrateSchema(new SqliteSchemaAdapter(db), getDesktopMigrationRegistry(), CURRENT_DESKTOP_SCHEMA_VERSION)
-      expect(CURRENT_DESKTOP_SCHEMA_VERSION).toBe(9)
+      const result = migrateSchema(new SqliteSchemaAdapter(db), getDesktopMigrationRegistry(), 9)
+      expect(CURRENT_DESKTOP_SCHEMA_VERSION).toBe(10)
       expect(result.completedSteps).toEqual(['M08'])
       expect(verifySchema(new SqliteSchemaAdapter(db), getDesktopMigrationRegistry(), 9).version).toBe(9)
       expect(events(db)).toEqual(EXPECTED_BASELINE)
@@ -98,10 +98,10 @@ describe('installed M08 lane', () => {
     } finally { db.close() }
   })
 
-  it('gives a new project the same v9 schema as an upgraded v8 project', () => {
+  it('gives a new project the same current schema as an upgraded v8 project', () => {
     const upgraded = v8Project(), created = new Database(':memory:')
     try {
-      migrateSchema(new SqliteSchemaAdapter(upgraded), getDesktopMigrationRegistry(), 9)
+      migrateSchema(new SqliteSchemaAdapter(upgraded), getDesktopMigrationRegistry(), CURRENT_DESKTOP_SCHEMA_VERSION)
       created.pragma('foreign_keys=ON')
       created.transaction(() => initializeLegacyBaselineSchema(created))()
       migrateSchema(new SqliteSchemaAdapter(created), getDesktopMigrationRegistry(), CURRENT_DESKTOP_SCHEMA_VERSION)

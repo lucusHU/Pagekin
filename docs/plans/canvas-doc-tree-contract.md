@@ -155,3 +155,32 @@
 5. **排序序号策略**：兄弟节点 `order` 采用删除后整体重排，还是稀疏序号 + 插入定位；拖拽排序交互随 S2 UI 定。
 6. **快照存储列与迁移**：`project_core` 新增 JSON 列（M09，schema 9 → 10），列名与迁移登记由主集成者串行接线。
 7. **`locked` 状态接线**：S4 锁定操作落地前，S2 不产生 `locked` 节点；读取路径已容忍该取值。
+
+## 6. S2 落地决定（对第 5 节未决项的结论）
+
+2026-11-13 实现完成。第 5 节七条未决项逐条定稿如下，代码以本决定为准；与第 2 节预留形状的差异也记在这里。
+
+1. **`sourceRevision` 口径：只哈希句柄集合，不纳入角色 `factHash`。**
+   指纹输入 `{ characters: [{characterId}], blueprints: [{chapterNumber}], finalizedChapters: [{draftId, chapterNumber}], narrativeThreads: [{id}] }`，各自按句柄排序后 `sha256(JSON.stringify(...))`。理由：树只引用句柄，被引用实体的标题、正文、要点变化不影响引用有效性；把 `factHash` 纳进来会让角色卡的无关改动被当成乐观锁冲突，逼作者重载树。角色名单正文变化不触发 `DOC_TREE_SOURCES_CHANGED`。
+2. **软删除子树：子树整组进回收站，组句柄就是 `deletedAt` 时间。**
+   删文件夹时，仍活着的后代共用同一个 ISO 时间戳写入 `deletedAt`；已在回收站、时间戳不同的节点保持原状（各自算一项）。恢复时按「同一 `deletedAt` 值 + 子树范围」连带放回，重复恢复幂等。不新增 `deletionId` 字段，合同不动。
+   恢复时若父级仍在回收站（跨删除组的孤儿），节点挂回根级，避免活树里挂着回收站父节点。
+3. **旧项目姓名版角色：不做姓名回退。**
+   `refs` 只在能取到稳定 `characterId`（M02 身份 schema 之后）时写入；`characters.character_id` 列不存在或为空的历史角色不进来源包，也不生成 character ref。姓名只能出现在节点标题里，那不是引用。
+4. **document 节点正文：S2 不落正文。**
+   节点只有 `title` 与层级；正文入口留 S6，按 ADR-0029 复用现有 draft/revision 链路，不在资料树加独立正文列，也不在快照里复制正文。
+5. **排序序号：同级整体重排。**
+   每次新建/移动/删除/恢复/彻底清除后，同一父级下的活节点重新编号 `0..n-1`（按 `order`、再按 id 稳定排序），不做稀疏序号。资料树节点量小，重排成本可忽略，避免稀疏序号长期漂移。
+6. **迁移 M09（schema 9 → 10）。**
+   `project_core` 增列 `doc_tree_snapshot TEXT NOT NULL DEFAULT ''`；`MIGRATION_LANE` 登记 `M09 / 9→10 / owner: canvas-mindmap`，由主集成者串行接线；`LATEST_SCHEMA_VERSION` 与 `CURRENT_DESKTOP_SCHEMA_VERSION` 一起升到 10。M09 幂等（先查 `PRAGMA table_info`，列已在则跳过），因为旧库可能经 M00 的 `addProjectCoreTextColumn` 路径补过列。
+   `doc_tree_snapshot` 同时加进 `generation-source-binding` / `main-generation-owner` 的 `project_core` 排除名单，与 `plot_tree_snapshot` 同口径：派生快照不进生成上下文，也不进 baseline 哈希。
+7. **树控件与 ID 生成：自写受控树，不引 `react-complex-tree`；不引 `nanoid`。**
+   阶段 0 调研已写明「若 S2 评估后改用自写树组件，第 1.2 节的交互契约仍可作需求对照」。S2 评估结论：rct 未在 React 19 实测，云端无头环境无法目视验证其 HTML5 DnD 与 `--rct-*` 主题层叠；而本切片要的受控展开/多选/拖拽落点/软删除语义都可直接落在 `canvas-store`，自写反而少一层库内状态与依赖面。ID 用主进程 `node:crypto` 的 `randomUUID()`，不新增依赖。
+
+### 6.1 与第 2 节预留形状的差异（已按实现更新）
+
+- 变更方法（`createNode` / `renameNode` / `moveNode` / `trashNode` / `restoreNode`）返回 `{ node, snapshot }`，IPC 回 `DocTreeNodeMutationResult`（`{ success: true; node; snapshot } | { success: false; error?; errorCode? }`）。渲染层一次拿到改动后的完整快照，不必再发一次读请求；其余形状（`read` / `listTrash` / `purgeNodes` / `clear`）与预留一致。
+- 新增通道 `doc-tree:trash-node`（把节点移进回收站）。预留表只列了 list/restore/purge，删除动作本身需要一条通道，按同一 `doc-tree:` 前缀接线，并在 `ipc-client` 的项目会话范围内（`isProjectScopedChannel` 增 `doc-tree:` 前缀）。
+- 新增通道 `doc-tree:clear`（对齐 `db:plot-tree-clear`，清空整棵树，供测试与重置用）。
+- 错误码清单：`DOC_TREE_PROJECT_CORE_MISSING`、`DOC_TREE_SOURCES_CHANGED`、`DOC_TREE_SAVE_FAILED`、`DOC_TREE_CLEAR_FAILED`、`DOC_TREE_NODE_NOT_FOUND`、`DOC_TREE_PARENT_NOT_FOUND`、`DOC_TREE_PARENT_NOT_FOLDER`、`DOC_TREE_PARENT_TRASHED`、`DOC_TREE_NODE_TRASHED`、`DOC_TREE_NODE_LOCKED`、`DOC_TREE_CYCLE_DETECTED`、`DOC_TREE_TITLE_INVALID`。主进程只回码，中英文案在 `src/components/stage/canvas/doc-tree-errors.ts`。
+- `listTrash` 把一次删除的子树收成一项（`id` 为子树根、`subtreeSize` 为本次带走节点数），坏项单列 `damaged`。

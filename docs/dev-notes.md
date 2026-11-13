@@ -142,12 +142,18 @@ src/shared/doc-tree.ts:142 [thrown-error] '资料树节点不能自连'
 
 范围：`DocTreeNode` 合同 + `doc_tree` 快照存储 + 侧栏树 UI：CRUD、拖拽排序与层级缩进、软删除/恢复；复用章节回收站软删除模式（ADR-0025），不复用章节回收站代码。
 
+落点：`electron/migrations/m09-doc-tree-snapshot.ts`（M09，schema 9→10）、`electron/repositories/doc-tree-repository.ts`、`src/stores/canvas-store.ts`（资料树会话态）、`src/services/canvas/doc-tree-service.ts`、`src/components/stage/canvas/`（`DocTreeSidebar.tsx`、`use-doc-tree.ts`、`doc-tree-view.ts`、`doc-tree-errors.ts`）。落地决定见 `docs/plans/canvas-doc-tree-contract.md` 第 6 节。
+
 | 检查命令 | 真实结果（退出码 / 用例数） | 未运行项与原因 |
 |---|---|---|
-| `pnpm run typecheck` |  |  |
-| `pnpm run lint` |  |  |
-| `pnpm run check:i18n` |  |  |
-| `vitest run <S2 相关测试文件>` |  |  |
+| `pnpm run typecheck`（`tsc --noEmit`，直接跑 `node_modules/.bin/tsc`） | 退出码 0；无诊断输出；耗时约 52s。注：`pnpm exec tsc --noEmit` 在本机只打印 pnpm 自身耗时（约 0.6s）而不透传诊断，故以直接调用二进制的结果为准 | — |
+| `pnpm run lint` | 退出码 0；eslint 无告警（首跑 1 条 `react-hooks/exhaustive-deps`，`nodes` 改 `useMemo` 后清零）；`check-color-literals: 通过` | — |
+| `pnpm run check:i18n` | 退出码 0；`i18n coverage check passed`。首跑失败 1 条：`DocTreeSidebar.tsx` 的 `... damaged entries are hidden.` 被判 `english-plural`，改为 `Damaged: ${n}` 后通过 | — |
+| `vitest run src/shared/__tests__/doc-tree.test.ts` | 10 passed，退出码 0 | — |
+| `vitest run electron/repositories/__tests__/doc-tree-repository.test.ts` | 11 passed，退出码 0，12.26s | — |
+| `vitest run src/components/stage/canvas/__tests__/doc-tree-view.test.ts` | 5 passed，退出码 0 | — |
+| `vitest run` 迁移相关 5 文件（runner / m05–m08 installed-lane） | 60 passed，退出码 0 | 改动 M09 后既有断言同步更新（lane 清单、pinned 版本 9→10、m08 两条用例目标版本） |
+| **S2 合计新增/相关用例** | **86 passed，0 失败**（26 新用例 + 60 迁移回归） | Electron 窗口内拖拽/折叠/主题观感未实测（无头环境，留本机或 CI） |
 
 ### 4.2 S3 画布快照与节点/边 CRUD
 
@@ -192,3 +198,11 @@ src/shared/doc-tree.ts:142 [thrown-error] '资料树节点不能自连'
 | `pnpm run lint` |  |  |
 | `pnpm run check:i18n` |  |  |
 | `vitest run <S6 相关测试文件>` |  |  |
+
+## 5. S2 补充记录
+
+- **共享接线（由主集成者本人改，未派生并行线）**：`electron/migrations/registry.ts`（M09 槽位、`LATEST_SCHEMA_VERSION=10`）、`electron/migrations/desktop-registry.ts`（M09 安装、指纹集、`CURRENT_DESKTOP_SCHEMA_VERSION=10`）、`src/shared/project-storage.ts`（`MIGRATION_IDS` 加 M09）、`src/shared/ipc-channels.ts`（8 条资料树通道）、`src/services/ipc-client.ts`（`doc-tree:` 进项目会话范围）、`src/components/stage/canvas/StageCanvas.tsx`（左树右画布布局）。`editor-store.ts`、`StageWorkspace.tsx`、`stage-progress.ts` 未改：`canvas` 标签 S1 已进联合类型，侧栏挂在画布页内。
+- **生成链路最小改动**：`electron/services/generation-source-binding.ts` 与 `electron/services/main-generation-owner.ts` 的 `project_core` 排除名单各加 `doc_tree_snapshot`，与 `plot_tree_snapshot` 同口径，避免派生树快照混进生成来源与 baseline 哈希。业务语义未变。
+- **旧星图未动**：`src/components/editor/RelationshipGraph.tsx` 及其 layout 无改动。
+- **依赖未新增**：`react-complex-tree`、`nanoid` 均未安装；理由见合同第 6 节第 7 条。`pnpm-lock.yaml` 不变。
+- **幂等迁移**：M09 先查 `PRAGMA table_info(project_core)`，列已在则跳过，避免旧库经 M00 补列后再 `ALTER` 报重复列。

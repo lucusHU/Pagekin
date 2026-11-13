@@ -67,6 +67,8 @@ import { SummaryRepository } from '../repositories/summary-repository'
 import { ConsistencyExemptionRepository } from '../repositories/consistency-exemption-repository'
 import { NarrativeThreadRepository } from '../repositories/narrative-thread-repository'
 import { PlotTreeRepository } from '../repositories/plot-tree-repository'
+import { DocTreeRepository } from '../repositories/doc-tree-repository'
+import type { DocTreeNodeCreateInput, PurgeDocTreeRequest } from '../../src/shared/doc-tree'
 import { RecoveryCandidateRepository } from '../repositories/recovery-candidate-repository'
 import type { RecoveryCandidateRecordInput } from '../../src/shared/recovery-candidate'
 
@@ -161,6 +163,13 @@ function registerProjectDatabaseHandler(channel: string, handler: ProjectDatabas
       throw error
     }
   })
+}
+
+/** 资料树变更的失败只回错误码，不回中文说明：文案由渲染层按界面语言写。 */
+function docTreeFailure(error: unknown): { success: false; error?: string; errorCode?: string } {
+  const message = error instanceof Error ? error.message : String(error)
+  const code = /^DOC_TREE_[A-Z_]+$/.exec(message)?.[0]
+  return code ? { success: false, errorCode: code } : { success: false, error: message }
 }
 
 export function registerDatabaseController() {
@@ -933,6 +942,107 @@ export function registerDatabaseController() {
     assertRequiredExpectedProjectPath(getCurrentProjectPath(), expectedProjectPath)
     PlotTreeRepository.clear()
     return { success: true }
+  })
+
+  // ============================================================
+  // 资料树（ADR-0029 / S2）：只存句柄与层级，权威事实仍在各自仓储
+  // ============================================================
+  ipcMain.handle('db:doc-tree-read', async (_event, expectedProjectPath: string) => {
+    assertRequiredExpectedProjectPath(getCurrentProjectPath(), expectedProjectPath)
+    return DocTreeRepository.read()
+  })
+
+  ipcMain.handle('doc-tree:trash-list', async (_event, expectedProjectPath: string) => {
+    assertRequiredExpectedProjectPath(getCurrentProjectPath(), expectedProjectPath)
+    return DocTreeRepository.listTrash()
+  })
+
+  ipcMain.handle('db:doc-tree-node-create', async (
+    _event,
+    input: DocTreeNodeCreateInput,
+    expectedSourceRevision: string,
+    expectedProjectPath: string,
+  ) => {
+    try {
+      assertRequiredExpectedProjectPath(getCurrentProjectPath(), expectedProjectPath)
+      const result = DocTreeRepository.createNode(input, expectedSourceRevision)
+      return { success: true, node: result.node, snapshot: result.snapshot }
+    } catch (error) { return docTreeFailure(error) }
+  })
+
+  ipcMain.handle('db:doc-tree-node-rename', async (
+    _event,
+    id: string,
+    title: string,
+    expectedSourceRevision: string,
+    expectedProjectPath: string,
+  ) => {
+    try {
+      assertRequiredExpectedProjectPath(getCurrentProjectPath(), expectedProjectPath)
+      const result = DocTreeRepository.renameNode(id, title, expectedSourceRevision)
+      return { success: true, node: result.node, snapshot: result.snapshot }
+    } catch (error) { return docTreeFailure(error) }
+  })
+
+  ipcMain.handle('db:doc-tree-node-move', async (
+    _event,
+    id: string,
+    parentId: string | null,
+    order: number,
+    expectedSourceRevision: string,
+    expectedProjectPath: string,
+  ) => {
+    try {
+      assertRequiredExpectedProjectPath(getCurrentProjectPath(), expectedProjectPath)
+      const result = DocTreeRepository.moveNode(id, parentId, order, expectedSourceRevision)
+      return { success: true, node: result.node, snapshot: result.snapshot }
+    } catch (error) { return docTreeFailure(error) }
+  })
+
+  ipcMain.handle('doc-tree:trash-node', async (
+    _event,
+    id: string,
+    expectedSourceRevision: string,
+    expectedProjectPath: string,
+  ) => {
+    try {
+      assertRequiredExpectedProjectPath(getCurrentProjectPath(), expectedProjectPath)
+      const result = DocTreeRepository.trashNode(id, expectedSourceRevision)
+      return { success: true, node: result.node, snapshot: result.snapshot }
+    } catch (error) { return docTreeFailure(error) }
+  })
+
+  ipcMain.handle('doc-tree:trash-restore', async (
+    _event,
+    id: string,
+    expectedSourceRevision: string,
+    expectedProjectPath: string,
+  ) => {
+    try {
+      assertRequiredExpectedProjectPath(getCurrentProjectPath(), expectedProjectPath)
+      const result = DocTreeRepository.restoreNode(id, expectedSourceRevision)
+      return { success: true, node: result.node, snapshot: result.snapshot }
+    } catch (error) { return docTreeFailure(error) }
+  })
+
+  ipcMain.handle('doc-tree:trash-purge', async (
+    _event,
+    request: PurgeDocTreeRequest,
+    expectedProjectPath: string,
+  ) => {
+    try {
+      assertRequiredExpectedProjectPath(getCurrentProjectPath(), expectedProjectPath)
+      const result = DocTreeRepository.purgeNodes(request)
+      return { success: true, purged: result.purged, alreadyGone: result.alreadyGone }
+    } catch (error) { return docTreeFailure(error) }
+  })
+
+  ipcMain.handle('doc-tree:clear', async (_event, expectedProjectPath: string) => {
+    try {
+      assertRequiredExpectedProjectPath(getCurrentProjectPath(), expectedProjectPath)
+      DocTreeRepository.clear()
+      return { success: true }
+    } catch (error) { return docTreeFailure(error) }
   })
 
   ipcMain.handle('db:draft-next-version', async (_event, chapterNumber: number, expectedProjectPath: string) => {

@@ -385,7 +385,7 @@ export function buildGenerationSourceBinding(deps: GenerationSourceBindingDepend
         const raw = deps.db.prepare("SELECT * FROM project_core WHERE id='main'").get() as Record<string, unknown> | undefined;
         if (!raw)
             fail('GENERATION_PROJECT_CORE_MISSING');
-        const core = without(raw, ['created_at', 'updated_at', 'character_states', 'plot_tree_snapshot']);
+        const core = without(raw, ['created_at', 'updated_at', 'character_states', 'plot_tree_snapshot', 'doc_tree_snapshot']);
         const language: WritingLanguage = core.writing_language === 'en-US' ? 'en-US' : 'zh-CN';
         add('project-core:main', 0, stable(core), 'author-constraint', 'current project settings');
         if (input.legacyRosterKey) {

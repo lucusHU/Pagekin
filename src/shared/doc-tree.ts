@@ -71,6 +71,55 @@ export interface DocTreeSourceBundle {
   sourceRevision: string
 }
 
+/** 读快照结果包：当前来源、快照副本与坏快照隔离标记（对齐剧情树 read bundle）。 */
+export interface DocTreeReadBundle {
+  sources: DocTreeSourceBundle
+  snapshot: DocTreeSnapshot | null
+  storedSnapshotInvalid?: true
+}
+
+/** 新建节点输入。父级存在性、成环与悬空引用在仓储事务内校验。 */
+export interface DocTreeNodeCreateInput {
+  parentId: string | null
+  kind: DocTreeNodeKind
+  title: string
+  origin: DocTreeNodeOrigin
+  refs?: DocTreeEntityRef[]
+}
+
+/** 回收站条目：一次删除带走的子树在回收站里算一项。 */
+export interface TrashedDocTreeNode {
+  id: string
+  title: string
+  kind: DocTreeNodeKind
+  /** 本次删除的组句柄：子树内被删节点共享同一 ISO 时间。 */
+  deletedAt: string
+  /** 本次删除带走的节点数（含自身）。 */
+  subtreeSize: number
+}
+
+/** 回收站里读不成形的条目，单列不挡其余条目（对齐章节回收站 `DamagedTrashEntry`）。 */
+export interface DamagedDocTreeTrashEntry {
+  id: string
+  error: string
+}
+
+export interface DocTreeTrashListResult {
+  entries: TrashedDocTreeNode[]
+  damaged: DamagedDocTreeTrashEntry[]
+}
+
+/** 彻底清除请求：指定 id 集合，或清空整个回收站。 */
+export type PurgeDocTreeRequest = { ids: string[] } | { all: true }
+
+/**
+ * 节点变更结果。成功时带节点与改动后的完整快照，作者侧一次刷新即可对齐，
+ * 不必再发一次读请求；失败时只带错误码/文案，快照不动。
+ */
+export type DocTreeNodeMutationResult =
+  | { success: true; node: DocTreeNode; snapshot: DocTreeSnapshot }
+  | { success: false; error?: string; errorCode?: string }
+
 export { isPlotTreeSourceRevision as isDocTreeSourceRevision }
 
 function record(value: unknown): Record<string, unknown> | null {

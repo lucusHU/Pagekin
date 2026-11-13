@@ -56,6 +56,13 @@ import type {
 import type { NarrativeThreadReviewCandidate } from './narrative-thread-review-candidates'
 import type { PlotTreeSourceBundle } from './plot-tree'
 import type {
+  DocTreeNodeCreateInput,
+  DocTreeNodeMutationResult,
+  DocTreeReadBundle,
+  DocTreeTrashListResult,
+  PurgeDocTreeRequest,
+} from './doc-tree'
+import type {
   UpdateActionResponse,
   UpdateCheckResponse,
   UpdatePreferences,
@@ -1092,6 +1099,42 @@ export interface DatabaseChannels {
     return: PlotTreeSourceBundle
   }
   'db:plot-tree-clear': {
+    args: [expectedProjectPath: string]
+    return: { success: boolean; error?: string }
+  }
+  'db:doc-tree-read': {
+    args: [expectedProjectPath: string]
+    return: DocTreeReadBundle
+  }
+  'db:doc-tree-node-create': {
+    args: [input: DocTreeNodeCreateInput, expectedSourceRevision: string, expectedProjectPath: string]
+    return: DocTreeNodeMutationResult
+  }
+  'db:doc-tree-node-rename': {
+    args: [id: string, title: string, expectedSourceRevision: string, expectedProjectPath: string]
+    return: DocTreeNodeMutationResult
+  }
+  'db:doc-tree-node-move': {
+    args: [id: string, parentId: string | null, order: number, expectedSourceRevision: string, expectedProjectPath: string]
+    return: DocTreeNodeMutationResult
+  }
+  'doc-tree:trash-list': {
+    args: [expectedProjectPath: string]
+    return: DocTreeTrashListResult
+  }
+  'doc-tree:trash-node': {
+    args: [id: string, expectedSourceRevision: string, expectedProjectPath: string]
+    return: DocTreeNodeMutationResult
+  }
+  'doc-tree:trash-restore': {
+    args: [id: string, expectedSourceRevision: string, expectedProjectPath: string]
+    return: DocTreeNodeMutationResult
+  }
+  'doc-tree:trash-purge': {
+    args: [request: PurgeDocTreeRequest, expectedProjectPath: string]
+    return: { success: boolean; purged?: string[]; alreadyGone?: string[]; error?: string }
+  }
+  'doc-tree:clear': {
     args: [expectedProjectPath: string]
     return: { success: boolean; error?: string }
   }
